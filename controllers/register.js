@@ -1,6 +1,8 @@
 const models = require('../models');
 const Sequelize = require('sequelize');
 const Op = Sequelize.Op;
+
+
 exports.register = function(req, res, next) {
   var register = [];
   req.body.students.forEach(student => {
@@ -61,7 +63,7 @@ exports.notificationList = function(req, res, next) {
       },
     }).then(student => {
       var students =student.map(student => student.studentEmail)
-      res.json(students.concat(mentionedEmails) );
+      res.json({"recipients":students.concat(mentionedEmails)});
       
       });
 };
