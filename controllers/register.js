@@ -4,9 +4,17 @@ const Op = Sequelize.Op;
 
 
 exports.register = function(req, res, next) {
+  var teachersParam =  req.body.teacher; 
+  var studentsParam =  req.body.students; 
 
-  const teacher = models.Teacher.findOne({ where: {email: req.body.teacher} });
-  const students = models.Student.findAll({ where:{email: req.body.students} });
+  if(teachersParam == undefined){
+    res.json({"message": "Teacher field is require"});
+  }else if(studentsParam == undefined){
+    res.json({"message": "Students field is require"});
+  }
+
+  const teacher = models.Teacher.findOne({ where: {email: teachersParam} });
+  const students = models.Student.findAll({ where:{email: studentsParam} });
 
   Promise
     .all([teacher, students])
@@ -28,6 +36,7 @@ exports.register = function(req, res, next) {
     })
     .catch(err => {
         console.log(err);
+        res.status(500).send({ error: 'Something failed!' })
     });
 };
 
@@ -71,6 +80,16 @@ exports.commonStudents = function(req, res, next) {
 };
 
 exports.notificationList = function(req, res, next) {
+
+  var notificationParam =  req.body.notification; 
+  var teacherParam =  req.body.teacher; 
+
+  if(teacherParam == undefined){
+    res.json({"message": "Teacher field is require"});
+  }else if(notificationParam == undefined){
+    res.json({"message": "Notification field is require"});
+  }
+
   var mentionedEmails = extractEmails(req.body.notification);
  
   const teacher = models.Teacher.findOne({ where: {email: req.body.teacher} });
@@ -104,6 +123,7 @@ exports.notificationList = function(req, res, next) {
   })
   .catch(err => {
       console.log(err);
+      res.status(500).send({ error: 'Something failed!' })
   });
 
 
