@@ -51,7 +51,7 @@ exports.commonStudents = function(req, res, next) {
 
 exports.notificationList = function(req, res, next) {
   var mentionedEmails = extractEmails(req.body.notification);
-
+ 
   models.Register.findAll({
       attributes: ['studentEmail'],
       raw: true,
@@ -69,5 +69,6 @@ exports.notificationList = function(req, res, next) {
 };
 
 function extractEmails ( text ){
-  return text.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi);
+  var emails = text.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi);
+  return (emails == null)?[]:emails;
 }
