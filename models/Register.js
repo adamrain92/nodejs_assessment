@@ -2,17 +2,17 @@
 module.exports = (sequelize, DataTypes) => {
   var Register = sequelize.define('Register', {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
       allowNull: false,
       primaryKey: true
     },
-    teacherEmail: {
-      type: DataTypes.STRING,
+    teacherId: {
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
-    studentEmail: {
-        type: DataTypes.STRING,
+    studentId: {
+        type: DataTypes.INTEGER,
         allowNull: false,
     },
   });

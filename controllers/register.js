@@ -4,19 +4,31 @@ const Op = Sequelize.Op;
 
 
 exports.register = function(req, res, next) {
-  var register = [];
-  req.body.students.forEach(student => {
-    register.push({
-      teacherEmail: req.body.teacher,
-      studentEmail: student
-    });
-  });
+
+  const teacher = models.Teacher.findOne({ where: {email: req.body.teacher} });
+  const students = models.Student.findAll({ where:{email: req.body.students} });
+
+  Promise
+    .all([teacher, students])
+    .then(responses => {
+
+      var register = [];
+      responses[1].forEach(student => {
+        register.push({
+          teacherId: responses[0].id,
+          studentId: student.id
+        });
+      });
+      models.Register.bulkCreate(register).then(function() {
+        res.json({
+          message: "Registration completed"
+        });
+      })
   
-  models.Register.bulkCreate(register).then(function() {
-  res.json({
-    message: "Registration completed"
-  });
-  })
+    })
+    .catch(err => {
+        console.log(err);
+    });
 };
 
 exports.commonStudents = function(req, res, next) {
@@ -28,44 +40,73 @@ exports.commonStudents = function(req, res, next) {
 
   teachers = ( typeof teachers != 'undefined' && teachers instanceof Array ) ? teachers : [teachers];
 
-  var teacherObj = [];
-  teachers.forEach(teacher => {
-    teacherObj.push({
-      teacherEmail: teacher
+  models.Teacher.findAll({
+    attributes: ['id'],
+    where: {email: teachers}
+  }).then(teacher => {
+    var teacher = teacher.map(teacher => teacher.id)
+
+      models.Register.findAll({
+        attributes: ['studentId'],
+        raw: true,
+        where: {
+          [Op.or]: {teacherId: teacher},
+        },
+        group: 'studentId',
+        having: Sequelize.where(Sequelize.fn('count', Sequelize.col('studentId')), '=', teacher.length)
+      }).then(register => {
+        var students =register.map(register => register.studentId)
+
+        models.Student.findAll({
+          attributes: ['email'],
+          where: {id: students}
+        }).then(student => {
+          var students = student.map(student => student.email)
+          res.json({"students":students});
+        });
+      });
+
     });
-  });
   
-  models.Register.findAll({
-    attributes: ['studentEmail'],
-    raw: true,
-    where: {
-      [Op.or]: teacherObj,
-    },
-    group: 'studentEmail',
-    having: Sequelize.where(Sequelize.fn('count', Sequelize.col('studentEmail')), '=', teacherObj.length)
-  }).then(register => {
-    var students =register.map(register => register.studentEmail)
-    res.json({"students":students});
-    });
 };
 
 exports.notificationList = function(req, res, next) {
   var mentionedEmails = extractEmails(req.body.notification);
  
-  models.Register.findAll({
-      attributes: ['studentEmail'],
+  const teacher = models.Teacher.findOne({ where: {email: req.body.teacher} });
+  const students = models.Student.findAll({ where:{email: mentionedEmails} });
+
+  Promise
+  .all([teacher, students])
+  .then(responses => {
+    var studentsId = responses[1].map(responses => responses.id);
+
+    models.Register.findAll({
+      attributes: ['studentId'],
       raw: true,
       where: {
-      studentEmail:{
-        [Op.notIn]: mentionedEmails
+        studentId:{
+        [Op.notIn]: studentsId
       },
-        teacherEmail: req.body.teacher
+        teacherId: responses[0].id
       },
-    }).then(student => {
-      var students =student.map(student => student.studentEmail)
-      res.json({"recipients":students.concat(mentionedEmails)});
-      
+    }).then(students => {
+      recipients =students.map(student => student.studentId).concat(studentsId);
+
+        models.Student.findAll({
+          attributes: ['email'],
+          where: {id: recipients}
+        }).then(student => {
+          var students = student.map(student => student.email)
+          res.json({"recipients":students});
+        });
       });
+  })
+  .catch(err => {
+      console.log(err);
+  });
+
+
 };
 
 function extractEmails ( text ){
